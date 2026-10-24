@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+message: "Please cite the software and relevant upstream research."
+title: "DAEHN"
+type: software
+authors:
+  - name: "SOULS-TAMU contributors"
+license: "Apache-2.0"
+
+repository-code: "https://github.com/SOULS-TAMU/dae-hardnet"
+url: "https://github.com/SOULS-TAMU/dae-hardnet/tree/development"
+version: "0.5.3"

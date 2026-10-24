@@ -1,181 +1,178 @@
-# DAE-HardNet  
+# DAEHN
 
-**DAE-HardNet: A Physics Constrained Neural Network Enforcing Differential-Algebraic Hard Constraints**
+[![CI](https://github.com/SOULS-TAMU/dae-hardnet/actions/workflows/ci.yml/badge.svg?branch=development)](https://github.com/SOULS-TAMU/dae-hardnet/actions/workflows/ci.yml?query=branch%3Adevelopment)
+[![Validation](https://github.com/SOULS-TAMU/dae-hardnet/actions/workflows/validation.yml/badge.svg?branch=development)](https://github.com/SOULS-TAMU/dae-hardnet/actions/workflows/validation.yml?query=branch%3Adevelopment)
+[![CodeQL](https://github.com/SOULS-TAMU/dae-hardnet/actions/workflows/codeql.yml/badge.svg?branch=development)](https://github.com/SOULS-TAMU/dae-hardnet/actions/workflows/codeql.yml?query=branch%3Adevelopment)
+[![Coverage](https://raw.githubusercontent.com/SOULS-TAMU/dae-hardnet/codex/coverage-development/coverage.svg)](https://github.com/SOULS-TAMU/dae-hardnet/tree/codex/coverage-development)
 
-This repository contains the official implementation of our paper  
-**“DAE-HardNet: A Physics Constrained Neural Network Enforcing Differential-Algebraic Hard Constraints”**.  
-The full paper is available on arXiv: [https://arxiv.org/abs/2507.08124](https://arxiv.org/abs/2512.05881).
+Hard-constrained learning for differential-algebraic systems in JAX.
 
----
+DAEHN defines the differential problem and translates it into inputs for the
+shared **OHAGI** learning engine and **PURIN** projection library. It contains no
+separate backbone implementation, optimization solver, or numerical training
+engine.
 
-## 📁 Directory Structure
+## Install
 
-| Directory / File | Description |
-|------------------|-------------|
-| **KKT/** | Symbolic generation of the full KKT (Karush-Kuhn-Tucker) system for optimization problems. |
-| **Op_problems/** | Directory that contains all optimization test problems/case studies. Each problem has its own folder containing `problem.json`, `model_config.json`, and dataset. |
-| **dataset/** | Utility functions for loading, processing and batching datasets. |
-| **model/** | Implementation of the neural network models (MLP, PINN, KKT-HardNet, Newton layers, etc.). |
-| **run/** | Wrapper scripts that orchestrate the model training and evaluation for a given problem. |
-| **main.py** | Entrypoint Python script for running the code manually. |
-| **requirements.txt** | List of required Python libraries and versions. |
-| **runner.sh** | Shell script to launch experiments with a single command. |
-| **create_env.sh** | Shell script to create python environment with a single command. |
-| **installer.sh** | Shell script to install packages with a single command. |
+Install this development version with its tested shared dependencies:
 
----
-
-## 🧠 Problem File (``Op_problems/<your-problem>/problem.json``)
-
-Each problem is defined via a JSON file with the following fields:
-
-| Field | Description |
-|------|-------------|
-| `parameters` | List of problem parameters `x{i}` |
-| `variables` | List of model variables `y{i}` |
-| `objective` | Objective function (use empty string to use the default quadratic objective) |
-| `constraints` | List of equality and inequality constraints |
-| `file_name` | Name of the dataset file (CSV with columns for both parameters and variables) |
-
-> **Note:**  
-> We use the notation `x{index}` for parameters and `y{index}` for variables across all problems.
-
-We will consistently use the following notation across all problem definitions and documentation:
-
-* **Parameters:** Parameters are denoted by **$x_{i}$**, where $i$ is the parameter index (e.g., $x_1, x_2$).
-* **Variables:** Variables are denoted by **$y_{i}$**, where $i$ is the variable index (e.g., $y_1, y_2, y_3, y_4$).
-* **Differential Variables:** A differential variable for the $n$-th order derivative of variable $y_i$ with respect to parameter $x_j$ is denoted as **$dnyidxj$**.
-    * $n$ is the order of the derivative.
-    * $i$ is the variable index.
-    * $j$ is the parameter index.
-
-| Mathematical Notation | Text Notation | Description |
-| :--- | :--- | :--- |
-| $\frac{d y_1}{d x_1}$ | `d1y1dx1` | First derivative of $y_1$ with respect to $x_1$. |
-| $\frac{d^2 y_1}{d x_1^2}$ | `d2y1dx1` | Second derivative of $y_1$ with respect to $x_1$. |
-| $\frac{\partial^2 y_3}{\partial x_1 \partial x_2}$ | `d2y3dx1dx2` | Second-order mixed partial derivative of $y_3$. |
-
----
-
-## ⚙️ Configuration File (``Op_problems/<your-problem>/model_config.json``)
-
-This file controls the training and solver configuration. The following keys are available:
-
-| Key | Description |
-|-----|-------------|
-| `num_epochs` | Number of training epochs |
-| `lr` | Optimizer learning rate |
-| `eta` | Threshold for activating Newton layer |
-| `hidden_dim` | MLP hidden dimension |
-| `pinn_reg_factor` | Regularization coefficient for PINN terms |
-| `model_loss_tolerance` | Loss threshold for stopping training |
-| `newton_step_length` | Step size used in Newton update |
-| `newton_tol` | Tolerance for Newton convergence |
-| `newton_reg_factor` | Regularization used in Newton step (for ill-conditioned systems) |
-| `max_newton_iter` | Maximum number of Newton iterations per epoch |
-| `batch_size` | Training batch size |
-| `train_split_size` | Dataset training split ratio |
-| `val_split_size` | Dataset validation split ratio |
-| `test_split_size` | Dataset test split ratio |
-| `save_checkpoint_iter` | Checkpoint save frequency (in epochs) |
-| `mlp_checkpoint_path` | Path to a pretrained MLP model (optional) |
-| `pinn_checkpoint_path` | Path to a pretrained PINN model (optional) |
-| `kkt_hardnet_checkpoint_path` | Path to a pretrained KKT-HardNet model (optional) |
-| `taylor_offset` | The offset used for taylor reformulation calculation in the model (Usually should be between $10^{-2}$ and $10^{-6}$) |
-| `taylor_order` | The order of taylor expansion for the reformulation. It is the maximum order of the DAE system. If kept `auto` will detect the order automatically |
-
----
-
-## ⁉️ How to Create Your Own Dataset
-- Define the problem (`problem.json`). This file specifies the problem as a dictionary.
-  - Input variables (features/parameters): name them sequentially as `x1, x2, x3, …`  
-  - Output variables (decision variables): name them sequentially as `y1, y2, y3, …`
-  - Notation for differential terms are mentioned before. Please follow them.
-  - Inputs go under `"parameters"`. Outputs go under `"variables"`.
-  - Constraints should be given as a list of strings. Use "==" for equality and ">="/"<=" for inequality inside the strings.
-  - Specify the data file in `"file_name"`.
- 
-- Prepare the dataset (`.csv`)
-  - The header row must contain the parameters and variables as defined in the problem file.
-  - Ensure column names in the CSV match the names listed in "parameters" and "variables" of problem.json.
-
-- Configure the `model_config.json` file
-  - Training: `num_epochs`, `lr`, `batch_size`
-  - Splits: `train_split_size`, `val_split_size`, `test_split_size`
-  - Newton/KKT settings: `newton_tol`, `max_newton_iter`, `newton_step_length`, etc.
-  - Checkpoints: configure how often to save models (`save_checkpoint_iter`) and paths for reloading.
-
-Keep all the files in one folder inside the `OP_problems` folder. For any confusion please check the given example problems inside the `Op_problems` folder.
-
-
-## 💾 Checkpoint Strategy
-
-- Training resumes from checkpoint if provided; otherwise, it starts from scratch.
-- For DAE-HardNet, if the checkpoint loss is already below `eta`, the Newton layer will be activated from the first epoch.
-- A new checkpoint is only saved if the current epoch has a lower loss than the previous checkpoint.
-- Three types of checkpoints are created: **MLP**, **PINN**, and **DAE-HardNet** (useful for transfer learning).
-
----
-
-## 🚀 How to Run
-
-### Linux / macOS
-
-```bash
-# 1. Clone the repository
-git clone <repository_name>
-
-# 2. Create and activate a virtual environment (default: "venv")
-bash create_env.sh --name "<environment_name>"
-
-# 3. Install all dependencies (default: requirements.txt)
-bash installer.sh --filename "<requirements_file>"
-
-# 4. Create a new problem directory
-mkdir ./Op_problems/<your-problem>
-
-# 5. Add 'problem.json' and 'model_config.json' into the new directory
-# 6. Add your dataset file (CSV) and reference it in 'problem.json'
-# 7. Update 'runner.sh' to include your problem directory
-
-# 8. Run the model
-bash runner.sh
+```shell
+python -m pip install "purin @ git+https://github.com/SOULS-TAMU/Purin.git@9ab708b470c4d9359e57f7bd214b0b5515aa4115"
+python -m pip install "ohagi @ git+https://github.com/SOULS-TAMU/Ohagi.git@e28f687e840d6840b259e687323029c3cc49bd59"
+python -m pip install "git+https://github.com/SOULS-TAMU/dae-hardnet.git@development"
 ```
 
-### Windows
+Python 3.10 or newer is required; dependency availability also depends on the
+Python version and platform. Flax backbones and Orbax checkpoints are optional:
 
-```powershell
-# 1. Clone the repository
-git clone <repository_name>
-
-# 2. Create and activate a virtual environment (default: "venv")
-create_env.bat --name "<environment_name>"
-
-# 3. Install all dependencies (default: requirements.txt)
-installer.bat --filename "<requirements_file>"
-
-# 4. Create a new problem directory
-mkdir .\Op_problems\<your-problem>
-
-# 5. Add 'problem.json' and 'model_config.json' into the new directory
-# 6. Add your dataset file (CSV) and reference it in 'problem.json'
-# 7. Update 'runner.sh' to include your problem directory
-
-# 8. Run the model (requires Git Bash or WSL)
-bash runner.sh
+```shell
+python -m pip install "ohagi[flax,orbax]"
 ```
 
-⚠️ Please cite our work if you use this code in your research.
-Citation formats are provided below.
+## Workflow
 
+1. Define coordinates, differential/algebraic states, parameters, equations,
+   and initial or boundary conditions.
+2. Choose Taylor neighborhoods, forward differences, or central differences.
+3. Compile the differential terms into a PURIN projection problem.
+4. Supply a JAX backbone and the problem-specific loss to OHAGI.
+5. Train, predict, and reconstruct physical states and derivatives.
+
+The public differential interface remains available through:
+
+```python
+from daehn.dae import (
+    DAESystem, Coordinate, DifferentialState, AlgebraicState,
+    DerivativeSpec, EquationBlock, TaylorNeighborhood,
+    ForwardDifference, CentralDifference, compile_dae,
+    DAETrainer, DAETrainingConfig,
+)
 ```
-@misc{golder2025daehardnetphysicsconstrainedneural,
-      title={DAE-HardNet: A Physics Constrained Neural Network Enforcing Differential-Algebraic Hard Constraints}, 
-      author={Rahul Golder and Bimol Nath Roy and M. M. Faruque Hasan},
-      year={2025},
-      eprint={2512.05881},
-      archivePrefix={arXiv},
-      primaryClass={cs.LG},
-      url={https://arxiv.org/abs/2512.05881}, 
-}
+
+`DAETrainer` supplies differential residuals, derivative supervision,
+reconstruction, and phase decisions to OHAGI's shared steps and epoch engine.
+The benchmark scripts retain their existing problem, training, and data APIs.
+
+## Backbones and projected models
+
+`daehn.MLPBackbone` uses OHAGI's functional JAX implementation with DAEHN's
+existing `tanh` default. `daehn.FlaxMLPBackbone` is the optional Flax adapter.
+A custom backbone may supply compatible `init` and `apply` functions.
+
+`daehn.ProjectedNeuralModel` is a small frontend adapter to
+`ohagi.training.projected.ProjectedTrainer`. Build, optimizer updates, batch
+execution, prediction, and checkpoint transport belong to OHAGI.
+
+For a built projected model, optional Orbax checkpointing retains the optimizer
+state as well as model parameters:
+
+```python
+model.save_checkpoint("checkpoints/latest")
+model.restore_checkpoint("checkpoints/latest")
 ```
+
+## Export and repeated inference
+
+Export a trained projected model once:
+
+```python
+model.export_inference("deployment/metadata.json")
+```
+
+The DAEHN facade supports loading with only the metadata path:
+
+```python
+from daehn import DAEHardNet
+
+model = DAEHardNet().load("deployment/metadata.json")
+prediction = model.predict(single_input)
+# model(single_input) is equivalent; predict_jax keeps outputs on device.
+```
+
+The shared loader remains available directly:
+
+```python
+from ohagi.inference import load
+
+predictor = load("deployment/metadata.json")
+prediction = predictor(single_input)
+```
+
+Keep the referenced `.jax_export` file alongside `metadata.json`. The loader
+warms one JAX signature for repeated single-instance calls. Reuse the predictor;
+loading and compilation are one-time costs. `predict_jax` returns a JAX array;
+`predict` returns a synchronized NumPy array.
+
+The only saved-model format is the shared `ohagi_model_v1` JAX bundle. Its
+parameter archive uses `ohagi_pytree_npz_v1`; inference uses
+`ohagi_jax_inference_v1` and `ohagi_jax_program_v1`. Deployment does not require
+DAEHN, Flax, Orbax, or problem factories. Training checkpoints remain separate.
+There are no legacy model readers or native export backends.
+
+## Source organization
+
+```text
+src/daehn/
+├── __init__.py
+├── api/
+│   ├── __init__.py
+│   ├── root.py
+│   ├── configuration.py
+│   ├── model.py
+│   ├── network.py
+│   ├── problem.py
+│   ├── projection.py
+│   ├── data.py
+│   ├── fit.py
+│   ├── objectives.py
+│   ├── logging.py
+│   └── differential/
+│       ├── __init__.py
+│       ├── symbols.py
+│       ├── system.py
+│       ├── equations.py
+│       ├── derivatives.py
+│       ├── conditions.py
+│       ├── discretization.py
+│       ├── compiler.py
+│       ├── scaling.py
+│       └── reconstruction.py
+└── serialization/
+    ├── __init__.py
+    └── artifacts.py
+```
+
+The flat API files contain DAEHN defaults, problem adapters, and differential
+training policy. `differential/` contains the mathematical processing unique to
+DAEHN. Serialization supplies frontend identity to OHAGI's common writer and
+graph capture. Current benchmark paths such as `daehn.dae`, `daehn.opt`, and
+`daehn.train.projected_neural` refer directly to these current implementations.
+
+There is no `_aliases.py`, legacy import hook, compatibility-only implementation
+tree, or duplicate `network/`, `problems/`, `projection/`, `training_compat/`,
+`utils/`, or `experimental/` subtree in DAEHN.
+
+## Benchmarks and development
+
+The adjacent `daehn-benchmarks` directory contains the existing case studies.
+See the [validation policy](.github/validation/README.md) for short-run comparisons and regression
+checks. Source restructuring preserves benchmark scripts and their call APIs.
+
+Packaging uses the `src` layout and PEP 517 configuration in `pyproject.toml`.
+See [CONTRIBUTING.md](CONTRIBUTING.md), [CHANGELOG.md](CHANGELOG.md),
+[CITATION.cff](CITATION.cff), and [NOTICE](NOTICE).
+
+## License
+
+This project is licensed under the [Apache License, Version 2.0](LICENSE).
+
+Original authorship and applicable upstream notices are retained in [NOTICE](NOTICE).
+
+## Compatibility and checks
+
+Development CI tests Python 3.10–3.14 on Linux, Windows and macOS, plus Linux
+ARM64 and a pinned JAX baseline. Accelerator support follows JAX's available
+wheels; these checks exercise CPU execution. Coverage combines statements and
+branches across the whole frontend. Optional Flax and Orbax integrations are
+tested separately. See the [validation policy](.github/validation/README.md)
+for numerical tolerances, current quality baselines and performance limitations.

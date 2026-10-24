@@ -1,0 +1,20 @@
+{
+  "taylor": {
+    "epochs": 2,
+    "prediction": [
+      0.12563968376657866
+    ]
+  },
+  "forward": {
+    "epochs": 2,
+    "prediction": [
+      0.1232147611454237
+    ]
+  },
+  "central": {
+    "epochs": 2,
+    "prediction": [
+      0.12321476106453078
+    ]
+  }
+}

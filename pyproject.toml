@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "daehn"
+version = "0.5.3"
+description = "DAEHN frontend on shared OHAGI components"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["ohagi[export]>=0.1.0,<0.2", "purin>=0.1.0,<0.2"]
+
+license = "Apache-2.0"
+license-files = ["LICENSE*", "NOTICE"]
+authors = [{name = "SOULS-TAMU contributors"}]
+keywords = ["jax", "constrained-learning", "differentiable-optimization"]
+
+[project.urls]
+Homepage = "https://github.com/SOULS-TAMU/dae-hardnet/tree/development"
+Repository = "https://github.com/SOULS-TAMU/dae-hardnet"
+Issues = "https://github.com/SOULS-TAMU/dae-hardnet/issues"
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "build", "ruff", "osqp", "absl-py", "flatbuffers"]
+docs = ["mkdocs>=1.5"]
+plotting = ["matplotlib>=3.8"]
+export = ["absl-py", "flatbuffers"]
+cuda12 = ["jax[cuda12]>=0.4.30"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+
+
+
+[tool.ruff]
+target-version = "py310"
+line-length = 88
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["optional: Flax and Orbax integration"]
+
+[tool.coverage.run]
+branch = true
+source = ["daehn"]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+precision = 2
