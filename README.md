@@ -9,16 +9,17 @@
 [![CPU platforms: Linux, Windows, macOS](https://img.shields.io/badge/CPU_platforms-Linux%20%7C%20Windows%20%7C%20macOS-blue)](https://github.com/SOULS-TAMU/dae-hardnet/actions/workflows/ci.yml?query=branch%3Adevelopment)
 [![Dependency review](https://github.com/SOULS-TAMU/dae-hardnet/actions/workflows/dependency-review.yml/badge.svg?branch=development)](https://github.com/SOULS-TAMU/dae-hardnet/actions/workflows/dependency-review.yml?query=branch%3Adevelopment)
 
-Hard-constrained learning for differential-algebraic systems in JAX.
+A JAX framework for hard-constrained learning of differential-algebraic
+systems, including differential processing, discretization and reconstruction.
 
-DAEHN defines the differential problem and translates it into inputs for the
-shared **OHAGI** learning engine and **PURIN** projection library. It contains no
-separate backbone implementation, optimization solver, or numerical training
-engine.
+The frontend defines the problem and task policy.
+[OHAGI](https://github.com/SOULS-TAMU/Ohagi) provides the shared learning and
+inference engine; [PURIN](https://github.com/SOULS-TAMU/Purin) provides projection
+algorithms and sparse kernels. Existing benchmark APIs remain supported.
 
 ## Install
 
-Install this development version with its tested shared dependencies:
+Install the development version with its tested shared dependencies:
 
 ```shell
 python -m pip install "purin @ git+https://github.com/SOULS-TAMU/Purin.git@9ab708b470c4d9359e57f7bd214b0b5515aa4115"
@@ -26,166 +27,124 @@ python -m pip install "ohagi @ git+https://github.com/SOULS-TAMU/Ohagi.git@e28f6
 python -m pip install "git+https://github.com/SOULS-TAMU/dae-hardnet.git@development"
 ```
 
-Python 3.10 or newer is required; dependency availability also depends on the
-Python version and platform. Flax backbones and Orbax checkpoints are optional:
+See [installation options](docs/INSTALL.md) for editable installs and optional
+Flax backbones/Orbax checkpoints.
 
-```shell
-python -m pip install "ohagi[flax,orbax]"
-```
+## Python versions and platforms
 
-## Workflow
+Python **3.10–3.14** is tested on **Linux, Windows and macOS**, with additional
+Linux ARM64 and pinned JAX baseline checks. Package installation and optional
+Flax/Orbax integrations are tested across all three OSes. These are CPU checks;
+accelerator support follows the [JAX installation guide](https://docs.jax.dev/en/latest/installation.html).
 
-1. Define coordinates, differential/algebraic states, parameters, equations,
-   and initial or boundary conditions.
-2. Choose Taylor neighborhoods, forward differences, or central differences.
-3. Compile the differential terms into a PURIN projection problem.
-4. Supply a JAX backbone and the problem-specific loss to OHAGI.
-5. Train, predict, and reconstruct physical states and derivatives.
+## Basic API
 
-The public differential interface remains available through:
+### Differential problem
+
+This small example learns the decay equation `dy/dt + y = 0` using state and
+derivative observations. Other systems can include algebraic equations,
+physical parameters and initial/boundary conditions.
 
 ```python
+import jax.numpy as jnp
+import numpy as np
+from daehn import MLPBackbone
 from daehn.dae import (
-    DAESystem, Coordinate, DifferentialState, AlgebraicState,
-    DerivativeSpec, EquationBlock, TaylorNeighborhood,
-    ForwardDifference, CentralDifference, compile_dae,
-    DAETrainer, DAETrainingConfig,
+    Coordinate, DifferentialState, DerivativeSpec, EquationBlock,
+    DAESystem, TaylorNeighborhood, compile_dae, DAETrainer, DAETrainingConfig,
 )
+
+strategy = TaylorNeighborhood(deltas=(0.01,), order=1)
+state = DifferentialState("y")
+system = DAESystem(
+    coordinates=(Coordinate("t"),),
+    differential_states=(state,),
+    derivatives=(DerivativeSpec(state, (1,)),),
+    differential_equations=EquationBlock(
+        lambda coordinates, states, derivatives, parameters:
+            jnp.array([derivatives[0] + states[0]]),
+        size=1,
+        affine_in_projection_variables=True,
+    ),
+    algebraic_equalities=EquationBlock(affine_in_projection_variables=True),
+    algebraic_inequalities=EquationBlock(affine_in_projection_variables=True),
+    name="decay",
+)
+compiled = compile_dae(system, discretization=strategy)
+trainer = DAETrainer(
+    compiled=compiled,
+    prepared_projection=compiled.prepare_projection(
+        batch_size=2, method="linear"
+    ),
+    backbone=MLPBackbone(hidden_sizes=(4,)),
+    config=DAETrainingConfig(
+        epochs=2,
+        pretrain_epochs=1,
+        batch_size=2,
+        hidden_sizes=(4,),
+        seed=7,
+        print_every=0,
+    ),
+)
+x = np.linspace(0, 1, 8)[:, None]
+p = np.empty((8, 0))
+y = np.exp(-x)
+result = trainer.fit(x[:4], p[:4], y[:4], -y[:4], x[4:], p[4:], y[4:], -y[4:])
+decoded, *_ = trainer.model.forward(
+    result.parameters, jnp.asarray(x[:2]), jnp.asarray(p[:2])
+)
+prediction = decoded["states"]
 ```
 
-`DAETrainer` supplies differential residuals, derivative supervision,
-reconstruction, and phase decisions to OHAGI's shared steps and epoch engine.
-The benchmark scripts retain their existing problem, training, and data APIs.
+See [problem definitions](docs/PROBLEM.md) for discretization and backbone options.
 
-## Backbones and projected models
+## Load and predict
 
-`daehn.MLPBackbone` uses OHAGI's functional JAX implementation with DAEHN's
-existing `tanh` default. `daehn.FlaxMLPBackbone` is the optional Flax adapter.
-A custom backbone may supply compatible `init` and `apply` functions.
-
-`daehn.ProjectedNeuralModel` is a small frontend adapter to
-`ohagi.training.projected.ProjectedTrainer`. Build, optimizer updates, batch
-execution, prediction, and checkpoint transport belong to OHAGI.
-
-For a built projected model, optional Orbax checkpointing retains the optimizer
-state as well as model parameters:
-
-```python
-model.save_checkpoint("checkpoints/latest")
-model.restore_checkpoint("checkpoints/latest")
-```
-
-## Export and repeated inference
-
-Export a trained projected model once:
-
-```python
-model.export_inference("deployment/metadata.json")
-```
-
-The DAEHN facade supports loading with only the metadata path:
+The inference facade accepts a saved deployment bundle:
 
 ```python
 from daehn import DAEHardNet
 
 model = DAEHardNet().load("deployment/metadata.json")
-prediction = model.predict(single_input)
-# model(single_input) is equivalent; predict_jax keeps outputs on device.
+prediction = model.predict([0.7])
 ```
 
-The shared loader remains available directly:
+`DAEHardNet` is the loading facade; differential training uses `DAETrainer`.
+See [export and inference](docs/INFERENCE.md) to export the example above with
+an explicit physical-state output graph.
+
+The shared loader is available to both frameworks:
 
 ```python
 from ohagi.inference import load
 
 predictor = load("deployment/metadata.json")
-prediction = predictor(single_input)
+prediction = predictor.predict([0.7])
 ```
 
-Keep the referenced `.jax_export` file alongside `metadata.json`. The loader
-warms one JAX signature for repeated single-instance calls. Reuse the predictor;
-loading and compilation are one-time costs. `predict_jax` returns a JAX array;
-`predict` returns a synchronized NumPy array.
+Pass the metadata path and keep its referenced `.jax_export` file with the
+bundle. Load once and reuse the predictor. `predict` returns synchronized NumPy
+output; `predict_jax` returns a JAX array. See [inference](docs/INFERENCE.md).
 
-The only saved-model format is the shared `ohagi_model_v1` JAX bundle. Its
-parameter archive uses `ohagi_pytree_npz_v1`; inference uses
-`ohagi_jax_inference_v1` and `ohagi_jax_program_v1`. Deployment does not require
-DAEHN, Flax, Orbax, or problem factories. Training checkpoints remain separate.
-There are no legacy model readers or native export backends.
+## Data convention
 
-## Source organization
+Coordinates, physical parameters, states and derivatives are separate arrays
+with samples on the first axis. Columns follow the declared/compiled ordering.
+Use `(n_samples, 0)` for absent physical parameters.
 
-```text
-src/daehn/
-├── __init__.py
-├── api/
-│   ├── __init__.py
-│   ├── root.py
-│   ├── configuration.py
-│   ├── model.py
-│   ├── network.py
-│   ├── problem.py
-│   ├── projection.py
-│   ├── data.py
-│   ├── fit.py
-│   ├── objectives.py
-│   ├── logging.py
-│   └── differential/
-│       ├── __init__.py
-│       ├── symbols.py
-│       ├── system.py
-│       ├── equations.py
-│       ├── derivatives.py
-│       ├── conditions.py
-│       ├── discretization.py
-│       ├── compiler.py
-│       ├── scaling.py
-│       └── reconstruction.py
-└── serialization/
-    ├── __init__.py
-    └── artifacts.py
-```
+## Examples and documentation
 
-The flat API files contain DAEHN defaults, problem adapters, and differential
-training policy. `differential/` contains the mathematical processing unique to
-DAEHN. Serialization supplies frontend identity to OHAGI's common writer and
-graph capture. Current benchmark paths such as `daehn.dae`, `daehn.opt`, and
-`daehn.train.projected_neural` refer directly to these current implementations.
+- [Install](docs/INSTALL.md): dependencies, optional integrations and packaging.
+- [Problem definitions](docs/PROBLEM.md): modeling, backbones and training.
+- [Inference](docs/INFERENCE.md): export, model bundles and repeated prediction.
+- [Version notes](docs/VERSION.md) and [changelog](CHANGELOG.md): development changes.
+- [Contributing](CONTRIBUTING.md) and [validation policy](.github/validation/README.md): development checks.
 
-There is no `_aliases.py`, legacy import hook, compatibility-only implementation
-tree, or duplicate `network/`, `problems/`, `projection/`, `training_compat/`,
-`utils/`, or `experimental/` subtree in DAEHN.
+CI requires **90% combined statement and branch coverage**, cognitive complexity
+at most **15** per function and the documented type-check policy. API snapshots,
+numerical regression and exact checkpoint-resume checks protect compatibility.
 
-## Benchmarks and development
+## Citation and license
 
-The adjacent `daehn-benchmarks` directory contains the existing case studies.
-See the [validation policy](.github/validation/README.md) for short-run comparisons and regression
-checks. Source restructuring preserves benchmark scripts and their call APIs.
-
-Packaging uses the `src` layout and PEP 517 configuration in `pyproject.toml`.
-See [CONTRIBUTING.md](CONTRIBUTING.md), [CHANGELOG.md](CHANGELOG.md),
-[CITATION.cff](CITATION.cff), and [NOTICE](NOTICE).
-
-## License
-
-This project is licensed under the [Apache License, Version 2.0](LICENSE).
-
-Original authorship and applicable upstream notices are retained in [NOTICE](NOTICE).
-
-## Compatibility and checks
-
-Development CI tests Python 3.10–3.14 on Linux, Windows and macOS, plus Linux
-ARM64 and a pinned JAX baseline. Accelerator support follows JAX's available
-wheels; these checks exercise CPU execution. Coverage combines statements and
-branches across the whole frontend. Optional Flax and Orbax integrations are
-tested separately. See the [validation policy](.github/validation/README.md)
-for numerical tolerances, current quality baselines and performance limitations.
-
-### Quality gates
-+
-+CI requires at least **90% combined statement and branch coverage** over the
-+entire frontend, cognitive complexity of at most **15** per function, and zero
-+errors under the documented type-check policy. API snapshots, numerical
-+references, exact checkpoint resume and isolated metadata inference protect
-+compatibility. See the [validation policy](.github/validation/README.md).
-+
+Use [CITATION.bib](CITATION.bib) for BibTeX or GitHub's **Cite this repository**
+menu. Licensed under [Apache 2.0](LICENSE); attribution is retained in [NOTICE](NOTICE).
