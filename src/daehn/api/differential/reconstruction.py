@@ -22,14 +22,7 @@ def extract_network_derivatives(
 ):
     """Evaluate selected derivatives of an unprojected network with autodiff."""
     outputs = []
-    if isinstance(differential_states, int):
-        unique = []
-        for spec in derivatives:
-            if spec.state.name not in unique:
-                unique.append(spec.state.name)
-        state_map = {name: i for i, name in enumerate(unique)}
-    else:
-        state_map = {state.name: i for i, state in enumerate(differential_states)}
+    state_map = _derivative_state_map(differential_states, derivatives)
     for spec in derivatives:
         repeated = []
         for coordinate, power in enumerate(spec.multi_index):
@@ -64,10 +57,10 @@ def _central_weights(order: int) -> tuple[np.ndarray, np.ndarray]:
     radius = max(1, (order + 1) // 2)
     while 2 * radius + 1 <= order:
         radius += 1
-    nodes = np.arange(-radius, radius + 1, dtype=np.float64)
-    powers = np.arange(nodes.size, dtype=np.int32)
+    nodes: np.ndarray = np.arange(-radius, radius + 1, dtype=np.float64)
+    powers: np.ndarray = np.arange(nodes.size, dtype=np.int32)
     vandermonde = nodes[None, :] ** powers[:, None]
-    rhs = np.zeros((nodes.size,), dtype=np.float64)
+    rhs: np.ndarray = np.zeros((nodes.size,), dtype=np.float64)
     rhs[order] = float(factorial(order))
     weights = np.linalg.solve(vandermonde, rhs)
     return nodes, weights
@@ -102,26 +95,7 @@ class FullModelDerivativePlan:
         state_indices = []
 
         for spec in derivatives:
-            if len(spec.multi_index) != coordinate_size:
-                raise ValueError("derivative multi-index and step dimension differ")
-            per_coordinate = []
-            for coordinate, order in enumerate(spec.multi_index):
-                nodes, weights = _central_weights(int(order))
-                scale = steps[coordinate] ** int(order)
-                per_coordinate.append((nodes, weights / scale))
-
-            row: dict[int, float] = {}
-            choices = [range(len(nodes)) for nodes, _weights in per_coordinate]
-            for selected in product(*choices):
-                shift = []
-                coefficient = 1.0
-                for coordinate, node_index in enumerate(selected):
-                    nodes, weights = per_coordinate[coordinate]
-                    shift.append(float(nodes[node_index] * steps[coordinate]))
-                    coefficient *= float(weights[node_index])
-                key = tuple(shift)
-                index = shift_to_index.setdefault(key, len(shift_to_index))
-                row[index] = row.get(index, 0.0) + coefficient
+            row = _stencil_row(spec, steps, coordinate_size, shift_to_index)
             rows.append(row)
             state_indices.append(state_map[spec.state.name])
 
@@ -238,3 +212,41 @@ class ProjectedDAEModel:
         context = outputs["context"]
         decoded = self.compiled.decode(context, outputs["projected"])
         return decoded, outputs["projection_result"].info, context, outputs["raw"]
+
+
+def _derivative_state_map(differential_states, derivatives):
+    """Resolve the retained count-only and named-state derivative conventions."""
+    if isinstance(differential_states, int):
+        unique = []
+        for spec in derivatives:
+            if spec.state.name not in unique:
+                unique.append(spec.state.name)
+        state_map = {name: i for i, name in enumerate(unique)}
+    else:
+        state_map = {state.name: i for i, state in enumerate(differential_states)}
+    return state_map
+
+
+def _stencil_row(spec, steps, coordinate_size, shift_to_index):
+    """Construct one tensor-product derivative row in deterministic insertion order."""
+    if len(spec.multi_index) != coordinate_size:
+        raise ValueError("derivative multi-index and step dimension differ")
+    per_coordinate = []
+    for coordinate, order in enumerate(spec.multi_index):
+        nodes, weights = _central_weights(int(order))
+        scale = steps[coordinate] ** int(order)
+        per_coordinate.append((nodes, weights / scale))
+
+    row: dict[int, float] = {}
+    choices = [range(len(nodes)) for nodes, _weights in per_coordinate]
+    for selected in product(*choices):
+        shift = []
+        coefficient = 1.0
+        for coordinate, node_index in enumerate(selected):
+            nodes, weights = per_coordinate[coordinate]
+            shift.append(float(nodes[node_index] * steps[coordinate]))
+            coefficient *= float(weights[node_index])
+        key = tuple(shift)
+        index = shift_to_index.setdefault(key, len(shift_to_index))
+        row[index] = row.get(index, 0.0) + coefficient
+    return row

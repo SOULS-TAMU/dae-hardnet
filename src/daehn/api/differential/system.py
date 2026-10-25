@@ -53,8 +53,8 @@ class DAESystem:
     @property
     def state_names(self) -> tuple[str, ...]:
         """Return differential and algebraic state names in canonical order."""
-        return tuple(
-            s.name for s in (*self.differential_states, *self.algebraic_states)
+        return tuple(s.name for s in self.differential_states) + tuple(
+            s.name for s in self.algebraic_states
         )
 
     @property

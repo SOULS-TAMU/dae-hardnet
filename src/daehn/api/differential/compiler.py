@@ -160,9 +160,10 @@ class CompiledDAE:
                 raise ValueError(
                     "explicit linear projection is not available for this compiled DAE"
                 )
-            rows = int(self.linear_matrix.shape[0])
+            matrix = np.asarray(self.linear_matrix)
+            rows = int(matrix.shape[0])
             layer = LinearEqualityProjection(
-                A=np.asarray(self.linear_matrix),
+                A=matrix,
                 b0=np.zeros((rows,), dtype=np.float64),
                 b_parameter_map=np.eye(rows, dtype=np.float64),
             ).prepare(batch_size=batch_size, dtype=dtype, backend=backend)
@@ -199,47 +200,8 @@ class CompiledDAE:
             "fischer-burmeister-reduced",
             "primal-dual-interior-point",
         }:
-            from daehn.api.projection import prepare_projection
-            from purin.solvers.config import FischerBurmeisterConfig
-            from purin.solvers.config import ProjectionConfig as SharedConfig
-            from purin.solvers.config import ImplicitGradientConfig as SharedImplicit
-
-            implicit = SharedImplicit(**vars(config.implicit_gradient))
-            config_type = (
-                SharedConfig
-                if selected == "primal-dual-interior-point"
-                else FischerBurmeisterConfig
-            )
-            if type(config).__module__.startswith(("ohagi.solvers.", "purin.solvers.")):
-                shared_config = config
-            else:
-                from purin.solvers.config import LinearSolverConfig as SharedLinear
-
-                shared_linear = SharedLinear(**vars(config.linear_solver))
-                options = dict(
-                    tolerance=config.tolerance,
-                    max_iterations=config.max_iterations,
-                    implicit_gradient=implicit,
-                    linear_solver=shared_linear,
-                    transpose_mode=config.transpose_mode,
-                )
-                if selected == "primal-dual-interior-point":
-                    options.update(
-                        mu=config.mu,
-                        backtracking=config.backtracking,
-                        max_backtracking_steps=config.max_backtracking_steps,
-                        backtracking_factor=config.backtracking_factor,
-                        interior_margin=config.interior_margin,
-                        store_residual_history=config.store_residual_history,
-                    )
-                shared_config = config_type(**options)
-            layer = prepare_projection(
-                problem,
-                method=selected,
-                config=shared_config,
-                batch_size=batch_size,
-                dtype=dtype,
-                backend=backend,
+            layer = _shared_dae_layer(
+                problem, selected, config, batch_size, dtype, backend
             )
         else:
             raise ValueError("unknown projection method")
@@ -550,3 +512,50 @@ def _prepare_dae_layouts(discretization, scaling, system):
         scaling,
         variable_scales,
     )
+
+
+def _shared_dae_layer(problem, selected, config, batch_size, dtype, backend):
+    """Translate DAE defaults to a named PURIN method before preparing its layer."""
+    from daehn.api.projection import prepare_projection
+    from purin.solvers.config import FischerBurmeisterConfig
+    from purin.solvers.config import ProjectionConfig as SharedConfig
+    from purin.solvers.config import ImplicitGradientConfig as SharedImplicit
+
+    implicit = SharedImplicit(**vars(config.implicit_gradient))
+    config_type = (
+        SharedConfig
+        if selected == "primal-dual-interior-point"
+        else FischerBurmeisterConfig
+    )
+    if type(config).__module__.startswith(("ohagi.solvers.", "purin.solvers.")):
+        shared_config = config
+    else:
+        from purin.solvers.config import LinearSolverConfig as SharedLinear
+
+        shared_linear = SharedLinear(**vars(config.linear_solver))
+        options = dict(
+            tolerance=config.tolerance,
+            max_iterations=config.max_iterations,
+            implicit_gradient=implicit,
+            linear_solver=shared_linear,
+            transpose_mode=config.transpose_mode,
+        )
+        if selected == "primal-dual-interior-point":
+            options.update(
+                mu=config.mu,
+                backtracking=config.backtracking,
+                max_backtracking_steps=config.max_backtracking_steps,
+                backtracking_factor=config.backtracking_factor,
+                interior_margin=config.interior_margin,
+                store_residual_history=config.store_residual_history,
+            )
+        shared_config = config_type(**options)
+    layer = prepare_projection(
+        problem,
+        method=selected,
+        config=shared_config,
+        batch_size=batch_size,
+        dtype=dtype,
+        backend=backend,
+    )
+    return layer

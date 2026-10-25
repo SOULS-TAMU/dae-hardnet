@@ -606,7 +606,7 @@ class DAETrainer:
         switch_reason = None
         rng = np.random.default_rng(config.seed)
         indices = np.arange(train_coordinates.shape[0])
-        history = []
+        history: list[dict[str, Any]] = []
         logger = DAETrainingLogger(config.epochs, config.print_every)
         logger.start(
             system=self.compiled.system.name,
@@ -660,26 +660,19 @@ class DAETrainer:
                 validation_derivative_targets,
                 projected=epoch_projected,
             )
-            row = {
-                "epoch": epoch,
-                "phase": "projected" if epoch_projected else "pretrain",
-                **{f"train_{k}": v for k, v in train_metrics.items()},
-                **{f"validation_{k}": v for k, v in validation_metrics.items()},
-            }
-            history.append(row)
+            _record_dae_epoch(
+                history, epoch, epoch_projected, train_metrics, validation_metrics
+            )
             logger.epoch(epoch, train_metrics, validation_metrics)
 
-            if not projection_active:
-                reason = None
-                if config.eta is not None and train_metrics["state_mse"] <= config.eta:
-                    reason = f"state_mse <= eta ({train_metrics['state_mse']:.4e})"
-                elif config.pretrain_epochs and epoch >= config.pretrain_epochs:
-                    reason = f"pretrain_epochs={config.pretrain_epochs}"
-                if reason is not None and epoch < config.epochs:
-                    projection_active = True
-                    projection_start_epoch = epoch + 1
-                    switch_reason = reason
-                    logger.phase_switch(projection_start_epoch, reason)
+            reason = _projection_switch_reason(
+                config, epoch, projection_active, train_metrics
+            )
+            if reason is not None:
+                projection_active = True
+                projection_start_epoch = epoch + 1
+                switch_reason = reason
+                logger.phase_switch(projection_start_epoch, reason)
 
             return EpochTransition((parameters, optimizer_state))
 
@@ -820,3 +813,28 @@ def _prepare_dae_observations(
         validation_parameters,
         validation_targets,
     )
+
+
+def _projection_switch_reason(config, epoch, projection_active, train_metrics):
+    """Keep the existing eta-first pretraining transition and final-epoch policy."""
+    if projection_active:
+        return None
+    reason = None
+    if config.eta is not None and train_metrics["state_mse"] <= config.eta:
+        reason = f"state_mse <= eta ({train_metrics['state_mse']:.4e})"
+    elif config.pretrain_epochs and epoch >= config.pretrain_epochs:
+        reason = f"pretrain_epochs={config.pretrain_epochs}"
+    return reason if reason is not None and epoch < config.epochs else None
+
+
+def _record_dae_epoch(
+    history, epoch, epoch_projected, train_metrics, validation_metrics
+):
+    """Persist the stable phase and train/validation metric field names."""
+    row = {
+        "epoch": epoch,
+        "phase": "projected" if epoch_projected else "pretrain",
+        **{f"train_{k}": v for k, v in train_metrics.items()},
+        **{f"validation_{k}": v for k, v in validation_metrics.items()},
+    }
+    history.append(row)

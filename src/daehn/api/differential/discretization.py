@@ -131,47 +131,24 @@ class ForwardDifference(DiscretizationStrategy):
         if len(self.deltas) != len(system.coordinates):
             raise ValueError("one forward delta is required per coordinate")
         derivatives = system.derivative_closure
-        offsets = []
-        offset_lookup = {}
-        for coord, delta in enumerate(self.deltas):
-            for multiple in (1, 2):
-                value = np.zeros((len(self.deltas),), dtype=np.float64)
-                value[coord] = multiple * float(delta)
-                offset_lookup[coord, multiple] = len(offsets)
-                offsets.append(value)
-        offsets = np.asarray(offsets)
-        scales = np.asarray(
-            [
-                derivative_physical_scale(d, self.deltas, d.state.scale)
-                for d in derivatives
-            ]
+        offsets, offset_lookup, scales, state_index = _difference_resources(
+            self.deltas, derivatives, system.differential_states, (1, 2)
         )
-        state_index = {s.name: i for i, s in enumerate(system.differential_states)}
 
         def reconstruct(parts, normalized_derivatives):
             del normalized_derivatives
             return parts[2]
 
         def estimate(center, neighbors):
-            values = []
-            for spec in derivatives:
-                coord = spec.pure_coordinate
-                state = state_index[spec.state.name]
-                if coord is None:
-                    values.append(jnp.asarray(0.0, center.dtype))
-                    continue
-                h = float(self.deltas[coord])
-                y0 = center[..., state]
-                y1 = neighbors[..., offset_lookup[coord, 1], state]
-                if spec.order == 1:
-                    physical = (y1 - y0) / h
-                elif spec.order == 2:
-                    y2 = neighbors[..., offset_lookup[coord, 2], state]
-                    physical = (y2 - 2.0 * y1 + y0) / (h * h)
-                else:
-                    physical = jnp.asarray(0.0, center.dtype)
-                values.append(physical / scales[len(values)])
-            return jnp.stack(values, axis=-1)
+            return _forward_estimate(
+                center,
+                neighbors,
+                derivatives,
+                state_index,
+                offset_lookup,
+                scales,
+                self.deltas,
+            )
 
         signature = sha256(
             json.dumps(
@@ -201,46 +178,18 @@ class CentralDifference(DiscretizationStrategy):
         if len(self.deltas) != len(system.coordinates):
             raise ValueError("one central delta is required per coordinate")
         derivatives = system.derivative_closure
-        offsets = []
-        lookup = {}
-        for coord, delta in enumerate(self.deltas):
-            for sign in (-1, 1):
-                value = np.zeros((len(self.deltas),), dtype=np.float64)
-                value[coord] = sign * float(delta)
-                lookup[coord, sign] = len(offsets)
-                offsets.append(value)
-        offsets = np.asarray(offsets)
-        scales = np.asarray(
-            [
-                derivative_physical_scale(d, self.deltas, d.state.scale)
-                for d in derivatives
-            ]
+        offsets, lookup, scales, state_index = _difference_resources(
+            self.deltas, derivatives, system.differential_states, (-1, 1)
         )
-        state_index = {s.name: i for i, s in enumerate(system.differential_states)}
 
         def reconstruct(parts, normalized_derivatives):
             del normalized_derivatives
             return parts[2]
 
         def estimate(center, neighbors):
-            vals = []
-            for i, spec in enumerate(derivatives):
-                coord = spec.pure_coordinate
-                state = state_index[spec.state.name]
-                if coord is None:
-                    physical = jnp.asarray(0.0, center.dtype)
-                else:
-                    h = float(self.deltas[coord])
-                    ym = neighbors[..., lookup[coord, -1], state]
-                    yp = neighbors[..., lookup[coord, 1], state]
-                    if spec.order == 1:
-                        physical = (yp - ym) / (2 * h)
-                    elif spec.order == 2:
-                        physical = (yp - 2 * center[..., state] + ym) / (h * h)
-                    else:
-                        physical = jnp.asarray(0.0, center.dtype)
-                vals.append(physical / scales[i])
-            return jnp.stack(vals, axis=-1)
+            return _central_estimate(
+                center, neighbors, derivatives, state_index, lookup, scales, self.deltas
+            )
 
         signature = sha256(
             json.dumps(
@@ -315,3 +264,71 @@ def _taylor_neighborhood_geometry(self, derivatives):
         dtype=np.float64,
     )
     return offsets, physical_scales, weights
+
+
+def _forward_estimate(
+    center, neighbors, derivatives, state_index, offset_lookup, scales, deltas
+):
+    """Evaluate the existing finite-difference stencil in its original arithmetic order."""
+    values = []
+    for spec in derivatives:
+        coord = spec.pure_coordinate
+        state = state_index[spec.state.name]
+        if coord is None:
+            values.append(jnp.asarray(0.0, center.dtype))
+            continue
+        h = float(deltas[coord])
+        y0 = center[..., state]
+        y1 = neighbors[..., offset_lookup[coord, 1], state]
+        if spec.order == 1:
+            physical = (y1 - y0) / h
+        elif spec.order == 2:
+            y2 = neighbors[..., offset_lookup[coord, 2], state]
+            physical = (y2 - 2.0 * y1 + y0) / (h * h)
+        else:
+            physical = jnp.asarray(0.0, center.dtype)
+        values.append(physical / scales[len(values)])
+    return jnp.stack(values, axis=-1)
+
+
+def _central_estimate(
+    center, neighbors, derivatives, state_index, lookup, scales, deltas
+):
+    """Evaluate the existing finite-difference stencil in its original arithmetic order."""
+    vals = []
+    for i, spec in enumerate(derivatives):
+        coord = spec.pure_coordinate
+        state = state_index[spec.state.name]
+        if coord is None:
+            physical = jnp.asarray(0.0, center.dtype)
+        else:
+            h = float(deltas[coord])
+            ym = neighbors[..., lookup[coord, -1], state]
+            yp = neighbors[..., lookup[coord, 1], state]
+            if spec.order == 1:
+                physical = (yp - ym) / (2 * h)
+            elif spec.order == 2:
+                physical = (yp - 2 * center[..., state] + ym) / (h * h)
+            else:
+                physical = jnp.asarray(0.0, center.dtype)
+        vals.append(physical / scales[i])
+    return jnp.stack(vals, axis=-1)
+
+
+def _difference_resources(deltas, derivatives, states, multiples):
+    """Build shared finite-difference geometry and scaling in the original row order."""
+    offsets = []
+    offset_lookup = {}
+    for coord, delta in enumerate(deltas):
+        for multiple in multiples:
+            value = np.zeros((len(deltas),), dtype=np.float64)
+            value[coord] = multiple * float(delta)
+            offset_lookup[coord, multiple] = len(offsets)
+            offsets.append(value)
+    offsets = np.asarray(offsets)
+    scales = np.asarray(
+        [derivative_physical_scale(d, deltas, d.state.scale) for d in derivatives]
+    )
+    state_index = {s.name: i for i, s in enumerate(states)}
+
+    return offsets, offset_lookup, scales, state_index
