@@ -4,6 +4,7 @@ A built `ProjectedNeuralModel` supports `model.export_inference(path)`.
 For the differential README example, explicitly select the output states:
 
 ```python
+import jax.numpy as jnp
 from ohagi.inference import export
 
 def predict_states(inputs):

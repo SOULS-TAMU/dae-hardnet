@@ -43,67 +43,70 @@ For editable installs and optional Flax/Orbax integrations, see
 
 ## Basic API
 
-### Differential problem
+### Learn a simple differential equation
 
-This example learns `dy/dt + y = 0` from state and derivative observations.
-It defines the system, prepares the differential projection, trains, and
-reconstructs the predicted state:
+Learn the decay law **dy/dt + y = 0** from observations of `y` and `dy/dt`.
+The example is self-contained: create data, define the equation, prepare the
+projection, train and predict.
 
 ```python
-import jax.numpy as jnp
+import jax
 import numpy as np
 from daehn import MLPBackbone
 from daehn.dae import (
-    Coordinate, DifferentialState, DerivativeSpec, EquationBlock,
-    DAESystem, TaylorNeighborhood, compile_dae, DAETrainer, DAETrainingConfig,
+    Coordinate, DifferentialState, DerivativeSpec, EquationBlock, DAESystem,
+    TaylorNeighborhood, compile_dae, DAETrainer, DAETrainingConfig,
 )
 
-strategy = TaylorNeighborhood(deltas=(0.01,), order=1)
+jax.config.update("jax_enable_x64", True)
+
+# 1. Data: time, observed state, observed derivative, physical parameters.
+t = np.linspace(0, 1, 8)[:, None]
+y = np.exp(-t)
+dy = -y
+p = np.empty((len(t), 0))  # This equation has no physical parameters.
+
+# 2. Problem: declare y(t), dy/dt, and the residual dy/dt + y.
 state = DifferentialState("y")
 system = DAESystem(
     coordinates=(Coordinate("t"),),
     differential_states=(state,),
     derivatives=(DerivativeSpec(state, (1,)),),
-    differential_equations=EquationBlock(
-        lambda coordinates, states, derivatives, parameters:
-            jnp.array([derivatives[0] + states[0]]),
-        size=1,
-        affine_in_projection_variables=True,
-    ),
-    algebraic_equalities=EquationBlock(affine_in_projection_variables=True),
-    algebraic_inequalities=EquationBlock(affine_in_projection_variables=True),
-    name="decay",
+    differential_equations=EquationBlock(lambda t, y, dy, p: dy + y, size=1),
 )
-compiled = compile_dae(system, discretization=strategy)
+
+# 3. Projection: process the differential equation using a Taylor neighborhood.
+compiled = compile_dae(system, discretization=TaylorNeighborhood(deltas=(0.01,)))
+projection = compiled.prepare_projection(batch_size=2)
+
+# 4. Network and training: use the first four samples for training.
 trainer = DAETrainer(
     compiled=compiled,
-    prepared_projection=compiled.prepare_projection(
-        batch_size=2, method="linear"
-    ),
-    backbone=MLPBackbone(hidden_sizes=(4,)),
+    prepared_projection=projection,
+    backbone=MLPBackbone(hidden_sizes=(8,)),
     config=DAETrainingConfig(
-        epochs=2,
-        pretrain_epochs=1,
-        batch_size=2,
-        hidden_sizes=(4,),
-        seed=7,
-        print_every=0,
+        epochs=2, pretrain_epochs=1, batch_size=2, hidden_sizes=(8,), print_every=0,
     ),
 )
-x = np.linspace(0, 1, 8)[:, None]
-p = np.empty((8, 0))
-y = np.exp(-x)
-result = trainer.fit(x[:4], p[:4], y[:4], -y[:4], x[4:], p[4:], y[4:], -y[4:])
-decoded, *_ = trainer.model.forward(
-    result.parameters, jnp.asarray(x[:2]), jnp.asarray(p[:2])
+result = trainer.fit(
+    train_coordinates=t[:4], train_parameters=p[:4],
+    train_targets=y[:4], train_derivative_targets=dy[:4],
+    validation_coordinates=t[4:], validation_parameters=p[4:],
+    validation_targets=y[4:], validation_derivative_targets=dy[4:],
 )
-prediction = decoded["states"]
+
+# 5. Predict the physical state y at a new time.
+_, prediction, *_ = trainer.predict(result.parameters, [[0.7]], np.empty((1, 0)))
+print(prediction)
 ```
 
-The example uses a first-order Taylor neighborhood and an affine projection.
-See [problem definitions](docs/PROBLEM.md) for differential specifications,
-algebraic equations, discretization and backbone choices. `DAETrainer` handles
-training; `DAEHardNet` is the deployment loading facade.
+`DerivativeSpec(state, (1,))` declares the first time derivative. `EquationBlock`
+returns residuals that should equal zero. `DAETrainingConfig` controls training
+and loss weights; the tiny two-epoch budget above is only a runnable quick start.
+
+Use `DAETrainer` to train differential models and `DAEHardNet` to load exported
+inference models. See [problem definitions](docs/PROBLEM.md) for algebraic
+constraints, initial conditions, discretization and custom backbones.
 
 ## Load and predict
 
