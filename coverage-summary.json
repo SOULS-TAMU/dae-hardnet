@@ -1,0 +1,20 @@
+{
+  "commit": "aa20576f516a88b05c6ea8ba1911f9371c027365",
+  "measurement": "statement and branch coverage, entire package",
+  "totals": {
+    "covered_lines": 1384,
+    "num_statements": 1433,
+    "percent_covered": 94.89855072463769,
+    "percent_covered_display": "94.90",
+    "missing_lines": 49,
+    "excluded_lines": 3,
+    "percent_statements_covered": 96.58060013956734,
+    "percent_statements_covered_display": "96.58",
+    "num_branches": 292,
+    "num_partial_branches": 33,
+    "covered_branches": 253,
+    "missing_branches": 39,
+    "percent_branches_covered": 86.64383561643835,
+    "percent_branches_covered_display": "86.64"
+  }
+}
