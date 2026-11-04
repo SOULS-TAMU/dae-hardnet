@@ -1,49 +1,53 @@
-# DAEHN
+# DAE-HardNet
+
+**Learn differential-algebraic systems with differentiable hard constraint projections.**
 
 [![CI](https://github.com/SOULS-TAMU/dae-hardnet/actions/workflows/ci.yml/badge.svg?branch=development)](https://github.com/SOULS-TAMU/dae-hardnet/actions/workflows/ci.yml?query=branch%3Adevelopment)
 [![Validation](https://github.com/SOULS-TAMU/dae-hardnet/actions/workflows/validation.yml/badge.svg?branch=development)](https://github.com/SOULS-TAMU/dae-hardnet/actions/workflows/validation.yml?query=branch%3Adevelopment)
 [![CodeQL](https://github.com/SOULS-TAMU/dae-hardnet/actions/workflows/codeql.yml/badge.svg?branch=development)](https://github.com/SOULS-TAMU/dae-hardnet/actions/workflows/codeql.yml?query=branch%3Adevelopment)
-[![Coverage](https://raw.githubusercontent.com/SOULS-TAMU/dae-hardnet/codex/coverage-development/coverage.svg)](https://github.com/SOULS-TAMU/dae-hardnet/tree/codex/coverage-development)
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://github.com/SOULS-TAMU/dae-hardnet/blob/development/LICENSE)
-[![Tested Python: 3.10–3.14](https://img.shields.io/badge/Python-3.10%E2%80%933.14-blue?logo=python&logoColor=white)](https://github.com/SOULS-TAMU/dae-hardnet/actions/workflows/ci.yml?query=branch%3Adevelopment)
-[![CPU platforms: Linux, Windows, macOS](https://img.shields.io/badge/CPU_platforms-Linux%20%7C%20Windows%20%7C%20macOS-blue)](https://github.com/SOULS-TAMU/dae-hardnet/actions/workflows/ci.yml?query=branch%3Adevelopment)
 [![Dependency review](https://github.com/SOULS-TAMU/dae-hardnet/actions/workflows/dependency-review.yml/badge.svg?branch=development)](https://github.com/SOULS-TAMU/dae-hardnet/actions/workflows/dependency-review.yml?query=branch%3Adevelopment)
+[![Coverage](https://raw.githubusercontent.com/SOULS-TAMU/dae-hardnet/codex/coverage-development/coverage.svg)](https://github.com/SOULS-TAMU/dae-hardnet/tree/codex/coverage-development)
 
-A JAX framework for hard-constrained learning of differential-algebraic
-systems, including differential processing, discretization and reconstruction.
+[![Python 3.10–3.14](https://img.shields.io/badge/Python-3.10%E2%80%933.14-3776AB?logo=python&logoColor=white)](.github/workflows/ci.yml)
+[![CPU platforms](https://img.shields.io/badge/CPU-Linux%20%7C%20Windows%20%7C%20macOS-555555)](.github/workflows/ci.yml)
+[![JAX](https://img.shields.io/badge/Powered_by-JAX-8A2BE2)](https://docs.jax.dev/)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue)](LICENSE)
+[![Citation: BibTeX](https://img.shields.io/badge/Cite-BibTeX-6F4E37)](CITATION.bib)
 
-The frontend defines the problem and task policy.
-[OHAGI](https://github.com/SOULS-TAMU/Ohagi) provides the shared learning and
-inference engine; [PURIN](https://github.com/SOULS-TAMU/Purin) provides projection
-algorithms and sparse kernels. Existing benchmark APIs remain supported.
+Define coordinates, states, derivatives and algebraic constraints, then pass the
+processed problem to OHAGI's shared learning engine and PURIN's projection solvers.
 
-## Install
+- **Differential processing:** declared derivative specifications, discretization
+  strategies and reconstruction of physical states and derivatives.
+- **Hard algebraic constraints:** projected predictions under the selected solver's
+  numerical tolerances.
+- **Flexible backbones:** functional JAX networks and optional Flax adapters,
+  with optional Orbax training checkpoints through OHAGI.
+- **Reusable deployment:** a shared JAX bundle and the `DAEHardNet().load(...)` facade.
 
-Install the development version with its tested shared dependencies:
+[Installation](#installation) · [Basic API](#basic-api) · [Load and predict](#load-and-predict) · [Documentation](#documentation) · [Contributing](#contributing) · [Citation](#citation)
+
+## Installation
+
+This README documents the **development branch**. Install its source packages
+in dependency order with Python 3.10 or newer:
 
 ```shell
-python -m pip install "purin @ git+https://github.com/SOULS-TAMU/Purin.git@9ab708b470c4d9359e57f7bd214b0b5515aa4115"
-python -m pip install "ohagi @ git+https://github.com/SOULS-TAMU/Ohagi.git@e28f687e840d6840b259e687323029c3cc49bd59"
-python -m pip install "git+https://github.com/SOULS-TAMU/dae-hardnet.git@development"
+python -m pip install "purin @ git+https://github.com/SOULS-TAMU/Purin.git@development"
+python -m pip install "ohagi @ git+https://github.com/SOULS-TAMU/Ohagi.git@development"
+python -m pip install "daehn @ git+https://github.com/SOULS-TAMU/dae-hardnet.git@development"
 ```
 
-See [installation options](docs/INSTALL.md) for editable installs and optional
-Flax backbones/Orbax checkpoints.
-
-## Python versions and platforms
-
-Python **3.10–3.14** is tested on **Linux, Windows and macOS**, with additional
-Linux ARM64 and pinned JAX baseline checks. Package installation and optional
-Flax/Orbax integrations are tested across all three OSes. These are CPU checks;
-accelerator support follows the [JAX installation guide](https://docs.jax.dev/en/latest/installation.html).
+For editable installs and optional Flax/Orbax integrations, see
+[installation options](docs/INSTALL.md).
 
 ## Basic API
 
 ### Differential problem
 
-This small example learns the decay equation `dy/dt + y = 0` using state and
-derivative observations. Other systems can include algebraic equations,
-physical parameters and initial/boundary conditions.
+This example learns `dy/dt + y = 0` from state and derivative observations.
+It defines the system, prepares the differential projection, trains, and
+reconstructs the predicted state:
 
 ```python
 import jax.numpy as jnp
@@ -96,11 +100,14 @@ decoded, *_ = trainer.model.forward(
 prediction = decoded["states"]
 ```
 
-See [problem definitions](docs/PROBLEM.md) for discretization and backbone options.
+The example uses a first-order Taylor neighborhood and an affine projection.
+See [problem definitions](docs/PROBLEM.md) for differential specifications,
+algebraic equations, discretization and backbone choices. `DAETrainer` handles
+training; `DAEHardNet` is the deployment loading facade.
 
 ## Load and predict
 
-The inference facade accepts a saved deployment bundle:
+Load a previously exported physical-state deployment bundle:
 
 ```python
 from daehn import DAEHardNet
@@ -109,42 +116,82 @@ model = DAEHardNet().load("deployment/metadata.json")
 prediction = model.predict([0.7])
 ```
 
-`DAEHardNet` is the loading facade; differential training uses `DAETrainer`.
-See [export and inference](docs/INFERENCE.md) to export the example above with
-an explicit physical-state output graph.
+For differential models, export the desired physical-state output graph explicitly;
+[the inference guide](docs/INFERENCE.md) shows how to export the example above.
 
-The shared loader is available to both frameworks:
+The same deployment bundle also works through OHAGI:
 
 ```python
 from ohagi.inference import load
 
 predictor = load("deployment/metadata.json")
-prediction = predictor.predict([0.7])
+for value in [0.4, 0.7, 1.0]:
+    prediction = predictor.predict([value])
 ```
 
-Pass the metadata path and keep its referenced `.jax_export` file with the
-bundle. Load once and reuse the predictor. `predict` returns synchronized NumPy
-output; `predict_jax` returns a JAX array. See [inference](docs/INFERENCE.md).
+Keep the referenced `.jax_export` file with `metadata.json`. Load once and reuse
+the predictor. `predict` returns synchronized NumPy values; `predict_jax` keeps
+outputs on the JAX device. Deployment uses the shared JAX pathway.
 
 ## Data convention
 
-Coordinates, physical parameters, states and derivatives are separate arrays
-with samples on the first axis. Columns follow the declared/compiled ordering.
-Use `(n_samples, 0)` for absent physical parameters.
+Coordinates, physical parameters, states and derivatives are separate arrays,
+with samples on the first axis and columns in declared/compiled order. Use
+`(n_samples, 0)` when no physical parameters are present.
 
-## Examples and documentation
+## The HardNet stack
 
-- [Install](docs/INSTALL.md): dependencies, optional integrations and packaging.
-- [Problem definitions](docs/PROBLEM.md): modeling, backbones and training.
-- [Inference](docs/INFERENCE.md): export, model bundles and repeated prediction.
-- [Version notes](docs/VERSION.md) and [changelog](CHANGELOG.md): development changes.
-- [Contributing](CONTRIBUTING.md) and [validation policy](.github/validation/README.md): development checks.
+- **[KKTHN](https://github.com/SOULS-TAMU/kkt-hardnet/tree/development),
+  [DAEHN](https://github.com/SOULS-TAMU/dae-hardnet/tree/development) and
+  [NLPOPTNet](https://github.com/SOULS-TAMU/nlpoptnet)** supply problem formulations
+  and framework-specific processing.
+- **[OHAGI](https://github.com/SOULS-TAMU/Ohagi/tree/development)** composes models,
+  runs the shared learning engine, and handles checkpoints and JAX deployment.
+- **[PURIN](https://github.com/SOULS-TAMU/Purin/tree/development)** owns projection
+  problems, numerical solvers, sparse kernels and projection differentiation.
 
-CI requires **90% combined statement and branch coverage**, cognitive complexity
-at most **15** per function and the documented type-check policy. API snapshots,
-numerical regression and exact checkpoint-resume checks protect compatibility.
+## Compatibility and validation
 
-## Citation and license
+The CPU CI matrix covers **Python 3.10–3.14** on Linux, Windows and macOS,
+plus Linux ARM64 on Python 3.13. It exercises current compatible JAX releases
+and JAX 0.6.2 on Python 3.12. See the [workflow](.github/workflows/ci.yml)
+for exact environments; accelerator installation follows the
+[JAX guide](https://docs.jax.dev/en/latest/installation.html).
 
-Use [CITATION.bib](CITATION.bib) for BibTeX or GitHub's **Cite this repository**
-menu. Licensed under [Apache 2.0](LICENSE); attribution is retained in [NOTICE](NOTICE).
+- **CI:** tests, distribution builds and installation checks.
+- **Validation:** public APIs, numerical references, documentation and code quality.
+- **Coverage:** at least **90% combined statement and branch coverage**; the badge
+  links to the measured report for this branch.
+- **Security:** CodeQL analysis and dependency review.
+
+The frontend validation policy also checks API compatibility, checkpoint resume,
+types, dependency boundaries and cognitive complexity. See
+[validation details](.github/validation/README.md).
+
+## Documentation
+
+| Guide | Contents |
+| --- | --- |
+| [Installation](docs/INSTALL.md) | Source installs, optional integrations and packaging |
+| [Problem definitions](docs/PROBLEM.md) | Modeling, backbones and training |
+| [Inference](docs/INFERENCE.md) | Export, loading and repeated prediction |
+| [Version notes](docs/VERSION.md) | Current development behavior |
+| [Changelog](CHANGELOG.md) | Recorded changes |
+
+## Contributing
+
+Bug reports, examples and focused pull requests are welcome. Read
+[CONTRIBUTING.md](CONTRIBUTING.md) for setup, numerical checks and compatibility
+requirements. Keep generated results, environments and checkpoints out of Git.
+
+## Citation
+
+Use [CITATION.bib](CITATION.bib) for a copyable BibTeX entry or GitHub's
+**Cite this repository** menu for [citation metadata](CITATION.cff).
+
+## License
+
+[Apache License 2.0](LICENSE). Authorship and upstream attribution are recorded
+in [AUTHORS](AUTHORS) and [NOTICE](NOTICE).
+
+[Changelog](CHANGELOG.md) · [Report an issue](https://github.com/SOULS-TAMU/dae-hardnet/issues)
