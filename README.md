@@ -2,11 +2,11 @@
 
 **Learn differential-algebraic systems with differentiable hard constraint projections.**
 
-[![CI](https://github.com/SOULS-TAMU/dae-hardnet/actions/workflows/ci.yml/badge.svg?branch=development)](https://github.com/SOULS-TAMU/dae-hardnet/actions/workflows/ci.yml?query=branch%3Adevelopment)
-[![Validation](https://github.com/SOULS-TAMU/dae-hardnet/actions/workflows/validation.yml/badge.svg?branch=development)](https://github.com/SOULS-TAMU/dae-hardnet/actions/workflows/validation.yml?query=branch%3Adevelopment)
-[![CodeQL](https://github.com/SOULS-TAMU/dae-hardnet/actions/workflows/codeql.yml/badge.svg?branch=development)](https://github.com/SOULS-TAMU/dae-hardnet/actions/workflows/codeql.yml?query=branch%3Adevelopment)
-[![Dependency review](https://github.com/SOULS-TAMU/dae-hardnet/actions/workflows/dependency-review.yml/badge.svg?branch=development)](https://github.com/SOULS-TAMU/dae-hardnet/actions/workflows/dependency-review.yml?query=branch%3Adevelopment)
-[![Coverage](https://raw.githubusercontent.com/SOULS-TAMU/dae-hardnet/codex/coverage-development/coverage.svg)](https://github.com/SOULS-TAMU/dae-hardnet/tree/codex/coverage-development)
+[![CI](https://github.com/SOULS-TAMU/dae-hardnet/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/SOULS-TAMU/dae-hardnet/actions/workflows/ci.yml?query=branch%3Amain)
+[![Validation](https://github.com/SOULS-TAMU/dae-hardnet/actions/workflows/validation.yml/badge.svg?branch=main)](https://github.com/SOULS-TAMU/dae-hardnet/actions/workflows/validation.yml?query=branch%3Amain)
+[![CodeQL](https://github.com/SOULS-TAMU/dae-hardnet/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/SOULS-TAMU/dae-hardnet/actions/workflows/codeql.yml?query=branch%3Amain)
+[![Dependency review](https://github.com/SOULS-TAMU/dae-hardnet/actions/workflows/dependency-review.yml/badge.svg?branch=main)](https://github.com/SOULS-TAMU/dae-hardnet/actions/workflows/dependency-review.yml?query=branch%3Amain)
+[![Coverage](https://raw.githubusercontent.com/SOULS-TAMU/dae-hardnet/codex/coverage-main/coverage.svg)](https://github.com/SOULS-TAMU/dae-hardnet/tree/codex/coverage-main)
 
 [![Python 3.10–3.14](https://img.shields.io/badge/Python-3.10%E2%80%933.14-3776AB?logo=python&logoColor=white)](.github/workflows/ci.yml)
 [![CPU platforms](https://img.shields.io/badge/CPU-Linux%20%7C%20Windows%20%7C%20macOS-555555)](.github/workflows/ci.yml)
@@ -29,13 +29,13 @@ processed problem to OHAGI's shared learning engine and PURIN's projection solve
 
 ## Installation
 
-This README documents the **development branch**. Install its source packages
+This README documents the **main branch (version 2.0.0)**. Install its source packages
 in dependency order with Python 3.10 or newer:
 
 ```shell
 python -m pip install "purin @ git+https://github.com/SOULS-TAMU/Purin.git@development"
 python -m pip install "ohagi @ git+https://github.com/SOULS-TAMU/Ohagi.git@development"
-python -m pip install "daehn @ git+https://github.com/SOULS-TAMU/dae-hardnet.git@development"
+python -m pip install "daehn @ git+https://github.com/SOULS-TAMU/dae-hardnet.git@main"
 ```
 
 For editable installs and optional Flax/Orbax integrations, see
@@ -141,8 +141,8 @@ with samples on the first axis and columns in declared/compiled order. Use
 
 ## The HardNet stack
 
-- **[KKTHN](https://github.com/SOULS-TAMU/kkt-hardnet/tree/development),
-  [DAEHN](https://github.com/SOULS-TAMU/dae-hardnet/tree/development) and
+- **[KKTHN](https://github.com/SOULS-TAMU/kkt-hardnet/tree/main),
+  [DAEHN](https://github.com/SOULS-TAMU/dae-hardnet/tree/main) and
   [NLPOPTNet](https://github.com/SOULS-TAMU/nlpoptnet)** supply problem formulations
   and framework-specific processing.
 - **[OHAGI](https://github.com/SOULS-TAMU/Ohagi/tree/development)** composes models,
