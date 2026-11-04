@@ -40,7 +40,7 @@ from ohagi.execution import runtime
 from ohagi._utils import tree
 from daehn.serialization import save_predictor, load_predictor
 
-__version__ = "0.5.3"
+__version__ = "2.0.0"
 __all__ = [
     "nn",
     "opt",

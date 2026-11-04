@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "daehn"
-version = "0.5.3"
+version = "2.0.0"
 description = "DAEHN frontend on shared OHAGI components"
 readme = "README.md"
 requires-python = ">=3.10"
-dependencies = ["ohagi[export]>=0.1.0,<0.2", "purin>=0.1.0,<0.2"]
+dependencies = ["ohagi[export]>=1.0.0,<2.0.0", "purin>=1.0.0,<2.0.0"]
 
 license = "Apache-2.0"
 license-files = ["LICENSE*", "NOTICE"]
