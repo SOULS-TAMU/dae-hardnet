@@ -6,6 +6,11 @@ Neural modeling of differential–algebraic systems with hard constraints.
 This guide describes version **2.0.0**. Start with the runnable example,
 then use the guide and API reference for your own problem.
 
+.. image:: _static/architecture.png
+   :alt: DAE-HardNet architecture: neural predictions and differential terms pass through a KKT projection.
+   :width: 864px
+   :align: center
+
 Quick overview
 --------------
 

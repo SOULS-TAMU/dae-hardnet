@@ -17,6 +17,8 @@
 Define coordinates, states, derivatives and algebraic constraints, then pass the
 processed problem to OHAGI's shared learning engine and PURIN's projection solvers.
 
+![DAE-HardNet architecture: neural predictions and differential terms pass through a KKT projection.](docs/_static/architecture.png)
+
 - **Differential processing:** declared derivative specifications, discretization
   strategies and reconstruction of physical states and derivatives.
 - **Hard algebraic constraints:** projected predictions under the selected solver's
