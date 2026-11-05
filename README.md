@@ -2,6 +2,9 @@
 
 **Learn differential-algebraic systems with differentiable hard constraint projections.**
 
+[![PyPI](https://img.shields.io/pypi/v/daehn)](https://pypi.org/project/daehn/)
+[![Documentation](https://readthedocs.org/projects/dae-hardnet/badge/?version=latest)](https://dae-hardnet.readthedocs.io/en/latest/)
+
 [![CI](https://github.com/SOULS-TAMU/dae-hardnet/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/SOULS-TAMU/dae-hardnet/actions/workflows/ci.yml?query=branch%3Amain)
 [![Validation](https://github.com/SOULS-TAMU/dae-hardnet/actions/workflows/validation.yml/badge.svg?branch=main)](https://github.com/SOULS-TAMU/dae-hardnet/actions/workflows/validation.yml?query=branch%3Amain)
 [![CodeQL](https://github.com/SOULS-TAMU/dae-hardnet/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/SOULS-TAMU/dae-hardnet/actions/workflows/codeql.yml?query=branch%3Amain)
@@ -216,3 +219,5 @@ Use [CITATION.bib](https://github.com/SOULS-TAMU/dae-hardnet/blob/main/CITATION.
 in [AUTHORS](https://github.com/SOULS-TAMU/dae-hardnet/blob/main/AUTHORS) and [NOTICE](https://github.com/SOULS-TAMU/dae-hardnet/blob/main/NOTICE).
 
 [Changelog](https://github.com/SOULS-TAMU/dae-hardnet/blob/main/CHANGELOG.md) · [Report an issue](https://github.com/SOULS-TAMU/dae-hardnet/issues)
+
+Measured source structure and existing quality limits are documented in [Quality](docs/QUALITY.md).
