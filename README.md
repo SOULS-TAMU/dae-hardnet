@@ -31,13 +31,26 @@ processed problem to OHAGI's shared learning engine and PURIN's projection solve
 
 ## Installation
 
-Requires **Python 3.10 or newer**. Install from PyPI:
+Requires **Python 3.10 or newer**. Install the latest compatible release from PyPI:
 
 ```shell
 python -m pip install daehn
 ```
 
-For editable installs and optional Flax/Orbax integrations, see
+To update an existing installation:
+
+```shell
+python -m pip install --upgrade daehn
+```
+
+OHAGI and PURIN are installed automatically. To install both frontends together:
+
+```shell
+python -m pip install kkt-hardnet daehn
+```
+
+The distribution name is `daehn`; the Python import is `daehn`.
+For source/editable installs and optional Flax/Orbax integrations, see
 [installation options](https://github.com/SOULS-TAMU/dae-hardnet/blob/main/docs/INSTALL.md).
 
 ## Basic API
