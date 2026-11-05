@@ -45,6 +45,7 @@ the compiled constraints to solver tolerance; discretization error remains.
    contributing
    changelog
    BUILD
+   PUBLISHING
 
 Indices and search
 ------------------

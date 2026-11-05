@@ -8,16 +8,16 @@
 [![Dependency review](https://github.com/SOULS-TAMU/dae-hardnet/actions/workflows/dependency-review.yml/badge.svg?branch=main)](https://github.com/SOULS-TAMU/dae-hardnet/actions/workflows/dependency-review.yml?query=branch%3Amain)
 [![Coverage](https://raw.githubusercontent.com/SOULS-TAMU/dae-hardnet/codex/coverage-main/coverage.svg)](https://github.com/SOULS-TAMU/dae-hardnet/tree/codex/coverage-main)
 
-[![Python 3.10–3.14](https://img.shields.io/badge/Python-3.10%E2%80%933.14-3776AB?logo=python&logoColor=white)](.github/workflows/ci.yml)
-[![CPU platforms](https://img.shields.io/badge/CPU-Linux%20%7C%20Windows%20%7C%20macOS-555555)](.github/workflows/ci.yml)
+[![Python 3.10–3.14](https://img.shields.io/badge/Python-3.10%E2%80%933.14-3776AB?logo=python&logoColor=white)](https://github.com/SOULS-TAMU/dae-hardnet/blob/main/.github/workflows/ci.yml)
+[![CPU platforms](https://img.shields.io/badge/CPU-Linux%20%7C%20Windows%20%7C%20macOS-555555)](https://github.com/SOULS-TAMU/dae-hardnet/blob/main/.github/workflows/ci.yml)
 [![JAX](https://img.shields.io/badge/Powered_by-JAX-8A2BE2)](https://docs.jax.dev/)
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue)](LICENSE)
-[![Citation: BibTeX](https://img.shields.io/badge/Cite-BibTeX-6F4E37)](CITATION.bib)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue)](https://github.com/SOULS-TAMU/dae-hardnet/blob/main/LICENSE)
+[![Citation: BibTeX](https://img.shields.io/badge/Cite-BibTeX-6F4E37)](https://github.com/SOULS-TAMU/dae-hardnet/blob/main/CITATION.bib)
 
 Define coordinates, states, derivatives and algebraic constraints, then pass the
 processed problem to OHAGI's shared learning engine and PURIN's projection solvers.
 
-![DAE-HardNet architecture: neural predictions and differential terms pass through a KKT projection.](docs/_static/architecture.png)
+![DAE-HardNet architecture: neural predictions and differential terms pass through a KKT projection.](https://raw.githubusercontent.com/SOULS-TAMU/dae-hardnet/main/docs/_static/architecture.png)
 
 - **Differential processing:** declared derivative specifications, discretization
   strategies and reconstruction of physical states and derivatives.
@@ -35,13 +35,13 @@ This README documents the **main branch (version 2.0.0)**. Install its source pa
 in dependency order with Python 3.10 or newer:
 
 ```shell
-python -m pip install "purin @ git+https://github.com/SOULS-TAMU/Purin.git@development"
-python -m pip install "ohagi @ git+https://github.com/SOULS-TAMU/Ohagi.git@development"
+python -m pip install "purin @ git+https://github.com/SOULS-TAMU/Purin.git@main"
+python -m pip install "ohagi @ git+https://github.com/SOULS-TAMU/Ohagi.git@main"
 python -m pip install "daehn @ git+https://github.com/SOULS-TAMU/dae-hardnet.git@main"
 ```
 
 For editable installs and optional Flax/Orbax integrations, see
-[installation options](docs/INSTALL.md).
+[installation options](https://github.com/SOULS-TAMU/dae-hardnet/blob/main/docs/INSTALL.md).
 
 ## Basic API
 
@@ -107,7 +107,7 @@ returns residuals that should equal zero. `DAETrainingConfig` controls training
 and loss weights; the tiny two-epoch budget above is only a runnable quick start.
 
 Use `DAETrainer` to train differential models and `DAEHardNet` to load exported
-inference models. See [problem definitions](docs/PROBLEM.md) for algebraic
+inference models. See [problem definitions](https://github.com/SOULS-TAMU/dae-hardnet/blob/main/docs/PROBLEM.md) for algebraic
 constraints, initial conditions, discretization and custom backbones.
 
 ## Load and predict
@@ -122,7 +122,7 @@ prediction = model.predict([0.7])
 ```
 
 For differential models, export the desired physical-state output graph explicitly;
-[the inference guide](docs/INFERENCE.md) shows how to export the example above.
+[the inference guide](https://github.com/SOULS-TAMU/dae-hardnet/blob/main/docs/INFERENCE.md) shows how to export the example above.
 
 The same deployment bundle also works through OHAGI:
 
@@ -159,7 +159,7 @@ with samples on the first axis and columns in declared/compiled order. Use
 
 The CPU CI matrix covers **Python 3.10–3.14** on Linux, Windows and macOS,
 plus Linux ARM64 on Python 3.13. It exercises current compatible JAX releases
-and JAX 0.6.2 on Python 3.12. See the [workflow](.github/workflows/ci.yml)
+and JAX 0.6.2 on Python 3.12. See the [workflow](https://github.com/SOULS-TAMU/dae-hardnet/blob/main/.github/workflows/ci.yml)
 for exact environments; accelerator installation follows the
 [JAX guide](https://docs.jax.dev/en/latest/installation.html).
 
@@ -171,38 +171,38 @@ for exact environments; accelerator installation follows the
 
 The frontend validation policy also checks API compatibility, checkpoint resume,
 types, dependency boundaries and cognitive complexity. See
-[validation details](.github/validation/README.md).
+[validation details](https://github.com/SOULS-TAMU/dae-hardnet/blob/main/.github/validation/README.md).
 
 ## Documentation
 
 **[Read the full documentation](https://dae-hardnet.readthedocs.io/en/latest/)** — installation, tutorials, user guide and API reference.
 
-The full Sphinx guide follows the Read the Docs style: [contents](docs/index.rst),
-[runnable examples](docs/examples/index.rst), [API reference](docs/api/index.rst)
-and [build instructions](docs/BUILD.md).
+The full Sphinx guide follows the Read the Docs style: [contents](https://github.com/SOULS-TAMU/dae-hardnet/blob/main/docs/index.rst),
+[runnable examples](https://github.com/SOULS-TAMU/dae-hardnet/blob/main/docs/examples/index.rst), [API reference](https://github.com/SOULS-TAMU/dae-hardnet/blob/main/docs/api/index.rst)
+and [build instructions](https://github.com/SOULS-TAMU/dae-hardnet/blob/main/docs/BUILD.md).
 
 | Guide | Contents |
 | --- | --- |
-| [Installation](docs/INSTALL.md) | Source installs, optional integrations and packaging |
-| [Problem definitions](docs/PROBLEM.md) | Modeling, backbones and training |
-| [Inference](docs/INFERENCE.md) | Export, loading and repeated prediction |
-| [Version notes](docs/VERSION.md) | Current development behavior |
-| [Changelog](CHANGELOG.md) | Recorded changes |
+| [Installation](https://github.com/SOULS-TAMU/dae-hardnet/blob/main/docs/INSTALL.md) | Source installs, optional integrations and packaging |
+| [Problem definitions](https://github.com/SOULS-TAMU/dae-hardnet/blob/main/docs/PROBLEM.md) | Modeling, backbones and training |
+| [Inference](https://github.com/SOULS-TAMU/dae-hardnet/blob/main/docs/INFERENCE.md) | Export, loading and repeated prediction |
+| [Version notes](https://github.com/SOULS-TAMU/dae-hardnet/blob/main/docs/VERSION.md) | Current development behavior |
+| [Changelog](https://github.com/SOULS-TAMU/dae-hardnet/blob/main/CHANGELOG.md) | Recorded changes |
 
 ## Contributing
 
 Bug reports, examples and focused pull requests are welcome. Read
-[CONTRIBUTING.md](CONTRIBUTING.md) for setup, numerical checks and compatibility
+[CONTRIBUTING.md](https://github.com/SOULS-TAMU/dae-hardnet/blob/main/CONTRIBUTING.md) for setup, numerical checks and compatibility
 requirements. Keep generated results, environments and checkpoints out of Git.
 
 ## Citation
 
-Use [CITATION.bib](CITATION.bib) for a copyable BibTeX entry or GitHub's
-**Cite this repository** menu for [citation metadata](CITATION.cff).
+Use [CITATION.bib](https://github.com/SOULS-TAMU/dae-hardnet/blob/main/CITATION.bib) for a copyable BibTeX entry or GitHub's
+**Cite this repository** menu for [citation metadata](https://github.com/SOULS-TAMU/dae-hardnet/blob/main/CITATION.cff).
 
 ## License
 
-[Apache License 2.0](LICENSE). Authorship and upstream attribution are recorded
-in [AUTHORS](AUTHORS) and [NOTICE](NOTICE).
+[Apache License 2.0](https://github.com/SOULS-TAMU/dae-hardnet/blob/main/LICENSE). Authorship and upstream attribution are recorded
+in [AUTHORS](https://github.com/SOULS-TAMU/dae-hardnet/blob/main/AUTHORS) and [NOTICE](https://github.com/SOULS-TAMU/dae-hardnet/blob/main/NOTICE).
 
-[Changelog](CHANGELOG.md) · [Report an issue](https://github.com/SOULS-TAMU/dae-hardnet/issues)
+[Changelog](https://github.com/SOULS-TAMU/dae-hardnet/blob/main/CHANGELOG.md) · [Report an issue](https://github.com/SOULS-TAMU/dae-hardnet/issues)
