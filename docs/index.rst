@@ -1,7 +1,7 @@
 DAE-HardNet
 ===========
 
-Neural modeling of differential–algebraic systems with hard constraints.
+Neural modeling of differentialâ€“algebraic systems with hard constraints.
 
 This guide describes version **2.0.0**. Start with the runnable example,
 then use the guide and API reference for your own problem.
