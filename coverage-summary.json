@@ -1,5 +1,5 @@
 {
-  "commit": "6572c8dad7070bc1c441a262d1387d3deb21c3c8",
+  "commit": "c8fbe948615615fc252619c63770fb0b339c9b0c",
   "measurement": "statement and branch coverage, entire package",
   "totals": {
     "covered_lines": 1384,
