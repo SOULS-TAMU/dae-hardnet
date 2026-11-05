@@ -22,7 +22,7 @@ Issues = "https://github.com/SOULS-TAMU/dae-hardnet/issues"
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "build", "ruff", "osqp", "absl-py", "flatbuffers"]
-docs = ["mkdocs>=1.5"]
+docs = ["Sphinx>=8.2,<9", "sphinx-rtd-theme>=3.1,<4", "myst-parser>=4,<5"]
 plotting = ["matplotlib>=3.8"]
 export = ["absl-py", "flatbuffers"]
 cuda12 = ["jax[cuda12]>=0.4.30"]

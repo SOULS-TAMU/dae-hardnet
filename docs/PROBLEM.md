@@ -53,4 +53,4 @@ Orbax. Rebuild the same problem, backbone, optimizer and batching configuration
 before restoration. Its `fit(x, y, epochs=remaining_epochs)` interface differs
 from the differential trainer's eight-array signature above.
 
-[Back to README](../README.md)
+[Documentation home](index.rst)

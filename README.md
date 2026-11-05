@@ -173,6 +173,10 @@ types, dependency boundaries and cognitive complexity. See
 
 ## Documentation
 
+The full Sphinx guide follows the Read the Docs style: [contents](docs/index.rst),
+[runnable examples](docs/examples/index.rst), [API reference](docs/api/index.rst)
+and [build instructions](docs/BUILD.md).
+
 | Guide | Contents |
 | --- | --- |
 | [Installation](docs/INSTALL.md) | Source installs, optional integrations and packaging |
