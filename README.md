@@ -3,7 +3,7 @@
 **Learn differential-algebraic systems with differentiable hard constraint projections.**
 
 [![PyPI](https://img.shields.io/pypi/v/daehn)](https://pypi.org/project/daehn/)
-[![Documentation](https://readthedocs.org/projects/dae-hardnet/badge/?version=latest)](https://dae-hardnet.readthedocs.io/en/latest/)
+[![Documentation](https://img.shields.io/readthedocs/dae-hardnet/latest?logo=readthedocs&label=docs)](https://dae-hardnet.readthedocs.io/en/latest/)
 
 [![CI](https://github.com/SOULS-TAMU/dae-hardnet/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/SOULS-TAMU/dae-hardnet/actions/workflows/ci.yml?query=branch%3Amain)
 [![Validation](https://github.com/SOULS-TAMU/dae-hardnet/actions/workflows/validation.yml/badge.svg?branch=main)](https://github.com/SOULS-TAMU/dae-hardnet/actions/workflows/validation.yml?query=branch%3Amain)
