@@ -16,6 +16,7 @@ authors = [{name = "SOULS-TAMU contributors"}]
 keywords = ["jax", "constrained-learning", "differentiable-optimization"]
 
 [project.urls]
+Documentation = "https://dae-hardnet.readthedocs.io/en/latest/"
 Homepage = "https://github.com/SOULS-TAMU/dae-hardnet/tree/main"
 Repository = "https://github.com/SOULS-TAMU/dae-hardnet"
 Issues = "https://github.com/SOULS-TAMU/dae-hardnet/issues"
